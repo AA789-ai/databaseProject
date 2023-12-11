@@ -1,0 +1,31 @@
+//only serves to clean the database. For demoing purposes...
+
+DROP CONSTRAINT address_building_number;
+DROP CONSTRAINT address_city;
+DROP CONSTRAINT address_country;
+DROP CONSTRAINT address_county_code;
+DROP CONSTRAINT address_latitude_type;
+DROP CONSTRAINT address_longitude_type;
+DROP CONSTRAINT address_street_name;
+DROP CONSTRAINT card_expiration;
+DROP CONSTRAINT card_expiration_type;
+DROP CONSTRAINT card_id_type;
+DROP CONSTRAINT card_number;
+DROP CONSTRAINT card_person_id_type;
+DROP CONSTRAINT card_type;
+DROP CONSTRAINT card_unique;
+DROP CONSTRAINT person_birthday_type;
+DROP CONSTRAINT person_first_name;
+DROP CONSTRAINT person_id_type;
+DROP CONSTRAINT person_last_name;
+DROP CONSTRAINT person_unique;
+Drop constraint address_id_type;
+
+DROP INDEX person_name_index;
+DROP INDEX person_birthday_idx;
+DROP INDEX person_gender_index;
+DROP INDEX card_expiration_index;
+drop index personFullTextSearch;
+
+Match (n)
+Detach delete(n);

@@ -1,0 +1,115 @@
+// 1) Basic search query on an attribute value
+// Search for a person with a specific first and last name
+
+MATCH (p:Person {firstName: 'Arthur', lastName: 'Gislason'})
+RETURN p;
+
+
+
+// 2) Aggregate data query
+// Number of people whose card expire next year
+
+MATCH (c:Card)-[:OWNED_BY]->(p:Person)
+WHERE c.expiration >= date({year: 2024, month: 1, day: 1}) AND 
+      c.expiration < date({year: 2025, month: 1, day: 1})
+RETURN COUNT(DISTINCT id(p)) AS NumberOfPeopleWithCardsExpiringNextYear;
+
+
+
+
+
+// 3) Find top n entities satisfying a criteria
+// Top 5 youngest people
+
+MATCH (p:Person)
+RETURN p
+ORDER BY p.birthday DESC
+LIMIT 5;
+
+
+
+
+
+// 4) Simulate a relational group by query in NoSQL
+// Aggregate persons by gender and count them
+
+MATCH (p:Person)
+RETURN p.gender AS Gender, count(p) AS NumberOfPersons
+ORDER BY Gender;
+
+
+
+
+
+// 5) Build indexes and performance analysis
+// Before creating indexes, record execution time using PROFILE in previous queries
+// After creating indexes, record execution time using PROFILE in previous queries
+
+PROFILE MATCH (p:Person {firstName: 'Arthur', lastName: 'Gislason'})
+RETURN p;
+
+PROFILE MATCH (p:Person)
+RETURN p
+ORDER BY p.birthday DESC
+LIMIT 5;
+
+PROFILE MATCH (p:Person)
+RETURN p.gender AS Gender, count(p) AS NumberOfPersons
+ORDER BY Gender;
+
+PROFILE MATCH (c:Card)-[:OWNED_BY]->(p:Person)
+WHERE c.expiration >= date({year: 2024, month: 1, day: 1}) AND 
+      c.expiration < date({year: 2025, month: 1, day: 1})
+RETURN COUNT(DISTINCT id(p)) AS NumberOfPeopleWithCardsExpiringNextYear;
+
+//after creating these, re run the queries above
+CREATE INDEX person_name_index FOR (p:Person) ON (p.firstName, p.lastName);
+CREATE INDEX person_birthday_index FOR (p:Person) ON (p.birthday);
+CREATE INDEX person_gender_index FOR (p:Person) ON (p.gender);
+CREATE INDEX card_expiration_index FOR (c:Card) ON (c.expiration);
+
+// just to clean it before next step...
+DROP INDEX person_name_index;
+DROP INDEX person_birthday_index;
+DROP INDEX person_gender_index;
+DROP INDEX card_expiration_index;
+
+
+
+
+
+
+
+
+
+// 6) Demonstrate Full-text search 
+
+//  Run a full-text search before indexing
+PROFILE MATCH (p:Person)
+WHERE p.firstName = 'Arthur' AND p.lastName = 'Gislason'
+RETURN p;
+
+// Create a full-text search index
+CREATE FULLTEXT INDEX personFullTextSearch FOR (n:Person) ON EACH [n.firstName, n.lastName];
+
+// Run a full-text search index using index
+PROFILE CALL db.index.fulltext.queryNodes("personFullTextSearch", "Arthur Gislason") YIELD node
+RETURN node.firstName, node.lastName;
+
+//Just to clean it
+drop index personFullTextSearch;
+
+
+//7 Queries to compare speed of MySQL vs Neo4J's NoSQL
+
+// Same as query 1 of ProjectPhase1 (For comparison)
+MATCH (p:Person)
+WHERE p.firstName STARTS WITH 'A'
+RETURN p.firstName, p.lastName, p.birthday
+ORDER BY p.firstName, p.lastName;
+
+// Same as query2 of ProjectPhase2
+MATCH (p:Person)
+WITH p.birthday AS birthday, COUNT(*) AS count
+WHERE count = 3
+RETURN birthday;

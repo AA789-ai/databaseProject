@@ -1,0 +1,202 @@
+//-------------------------------------person.csv--------------------------------------------------------------------------------
+// constraint 1: personId must be unique
+CREATE CONSTRAINT person_unique
+FOR (p:Person) REQUIRE p.personId is UNIQUE;
+
+// constraint 2: personId must be of integer type
+CREATE CONSTRAINT person_id_type
+FOR (p:Person) REQUIRE p.personId IS :: INTEGER;
+
+// constraint 3: firstName must not be null
+CREATE CONSTRAINT person_first_name
+FOR (p:Person) REQUIRE p.firstName IS NOT NULL;
+
+// constraint 4: lastName must not be null
+CREATE CONSTRAINT person_last_name
+FOR (p:Person) REQUIRE p.lastName IS NOT NULL;
+
+// constraint 5: birthday must be of date type
+CREATE CONSTRAINT person_birthday_type
+FOR (p:Person) REQUIRE p.birthday IS :: DATE;
+
+// load person.csv
+LOAD CSV WITH HEADERS FROM 'file:////person.csv' AS row
+CREATE (:Person {personId: toInteger(row.id), firstName: row.firstname, 
+                lastName: row.lastname, 
+                birthday: date(row.birthday),
+                gender: row.gender, website: row.website, image: row.image});
+
+
+//-------------------------------------email.csv--------------------------------------------------------------------------------
+// let us first add the email property to every Person
+MATCH (p:Person)
+SET p.emails = [];
+
+// load email.csv and add in the emails to related persons
+LOAD CSV WITH HEADERS FROM 'file:////email.csv' AS row
+MATCH (p:Person WHERE p.personId = toInteger(row.personID))
+SET p.emails = p.emails + row.emailAddress
+RETURN row;
+
+
+//-------------------------------------phone_number.csv--------------------------------------------------------------------------------
+// Load phone_number.csv and create Phone nodes and associate them with related Persons
+LOAD CSV WITH HEADERS FROM 'file:////phone_number.csv' AS row
+MATCH (p:Person WHERE p.personId = toInteger(row.personID))
+CREATE (phone:Phone {phoneId: toInteger(row.id), phoneNumber: row.phoneNumber})
+CREATE (p)-[:HAS_PHONE]->(phone)
+RETURN row;
+
+
+
+//-------------------------------------card.csv--------------------------------------------------------------------------------
+// constraint 1: cardId 
+CREATE CONSTRAINT card_unique
+FOR (c:Card) REQUIRE c.cardId IS UNIQUE;
+
+// constraint 2: cardId must be an integer
+CREATE CONSTRAINT card_id_type
+FOR (c:Card) REQUIRE c.cardId IS :: INTEGER;
+
+// constraint 3: personId must not be null
+CREATE CONSTRAINT card_person_id
+FOR (c:Card) REQUIRE c.personId IS NOT NULL;
+
+// constraint 4: personId must be an integer
+CREATE CONSTRAINT card_person_id_type
+FOR (c:Card) REQUIRE c.personId IS :: INTEGER;
+
+// constraint 5: card number must not be null
+CREATE CONSTRAINT card_number
+FOR (c:Card) REQUIRE c.number IS NOT NULL;
+
+// constraint 6: expiration must be of date type
+CREATE CONSTRAINT card_expiration_type
+FOR (c:Card) REQUIRE c.expiration IS :: DATE;
+
+// constraint 7: expiration must not be null
+CREATE CONSTRAINT card_expiration
+FOR (c:Card) REQUIRE c.expiration IS NOT NULL;
+
+// constraint 8: type must not be null
+CREATE CONSTRAINT card_type
+FOR (c:Card) REQUIRE c.type IS NOT NULL;
+
+// now load card.csv as nodes
+LOAD CSV WITH HEADERS FROM 'file:////card.csv' AS row
+CREATE (:Card {cardId: toInteger(row.id), personId: toInteger(row.personID),
+               number: row.number, expiration: date(row.expiration),
+               type: row.type});
+
+// now create the relationships between person and card (:OWNED_BY)
+MATCH (p:Person),
+      (c:Card WHERE c.personId = p.personId)
+CREATE (c)-[:OWNED_BY]->(p);
+
+
+//-------------------------------------credit_card.csv--------------------------------------------------------------------------------
+// add CreditCard label and creditLimit, and availableCredit properties to Card nodes
+LOAD CSV WITH HEADERS FROM 'file:////credit_card.csv' AS row
+MATCH (c:Card WHERE c.cardId = toInteger(row.cardID))
+SET c :CreditCard, 
+    c.availableCredit = toFloat(row.availableCredit),
+    c.creditLimit = toFloat(row.creditLimit);
+
+
+//-------------------------------------debit_card.csv--------------------------------------------------------------------------------
+// add DebitCard label and balance property to Card nodes
+LOAD CSV WITH HEADERS FROM 'file:////debit_card.csv' AS row
+MATCH (c:Card WHERE c.cardId = toInteger(row.cardID))
+SET c :DebitCard, c.balance = toFloat(row.balance);
+
+
+//-------------------------------------address.csv--------------------------------------------------------------------------------
+// constraint 1: addressId must be an integer
+CREATE CONSTRAINT address_id_type
+FOR (a:Address) REQUIRE a.addressId IS :: INTEGER;
+
+// constraint 2: addressId must not be null
+CREATE CONSTRAINT address_id
+FOR (a:Address) REQUIRE a.addressId IS NOT NULL;
+
+// constraint 3: streetName must not be null
+CREATE CONSTRAINT address_street_name
+FOR (a:Address) REQUIRE a.streetName IS NOT NULL;
+
+// constraint 4: buildingNumber must not be null
+CREATE CONSTRAINT address_building_number
+FOR (a:Address) REQUIRE a.buildingNumber IS NOT NULL;
+
+// constraint 5: city must not be null
+CREATE CONSTRAINT address_city
+FOR (a:Address) REQUIRE a.city IS NOT NULL;
+
+// constraint 6: country must not be null
+CREATE CONSTRAINT address_country
+FOR (a:Address) REQUIRE a.country IS NOT NULL;
+
+// constraint 7: county code must not be null
+CREATE CONSTRAINT address_county_code
+FOR (a:Address) REQUIRE a.countyCode IS NOT NULL;
+
+// constraint 8: latitude is a float
+CREATE CONSTRAINT address_latitude_type
+FOR (a:Address) REQUIRE a.latitude IS :: FLOAT;
+
+// constraint 9: longitude is a float
+CREATE CONSTRAINT address_longitude_type
+FOR (a:Address) REQUIRE a.longitude IS :: FLOAT;
+
+// load address.csv as Address nodes
+LOAD CSV WITH HEADERS FROM 'file:////address.csv' AS row
+CREATE (:Address {addressId: toInteger(row.id), streetName: row.streetName,
+                  buildingNumber: row.buildingNumber, city: row.city,
+                  zipcode: row.zipcode, country: row.country,
+                  countyCode: row.countyCode, latitude: toFloat(row.latitude),
+                  longitude: toFloat(row.longitude)});
+
+
+//-------------------------------------lives_at_address.csv--------------------------------------------------------------------------------
+// load lives_at_address.csv as relationships between person and address (:LIVES_AT)
+LOAD CSV WITH HEADERS FROM 'file:////lives_at_address.csv' AS row
+MATCH (p:Person WHERE p.personId = toInteger(row.personID)),
+      (a:Address WHERE a.addressId = toInteger(row.addressID))
+CREATE (p)-[:LIVES_AT]->(a);
+
+
+//-------------------------------------building_owner.csv--------------------------------------------------------------------------------
+// load building_owner.csv as a relationship between person and address (:OWNER_OF)
+LOAD CSV WITH HEADERS FROM 'file:////building_owner.csv' AS row
+MATCH (p:Person WHERE p.personId = toInteger(row.personID)),
+      (a:Address WHERE a.addressId = toInteger(row.addressID))
+CREATE (p)-[:OWNER_OF]->(a);
+
+
+//-------------------------------------text_messages.csv--------------------------------------------------------------------------------
+LOAD CSV WITH HEADERS FROM 'file:////text_messages.csv' AS row
+//LOAD CSV WITH HEADERS FROM 'file:////text_messages_full.csv' AS row
+MATCH (phone1:Phone {phoneId: toInteger(row.phoneNumberID1)}), 
+      (phone2:Phone {phoneId: toInteger(row.phoneNumberID2)})
+CREATE (phone1)-[:SENDS_TEXT {time: row.time, messageContent: row.messageContent}]->(phone2)
+RETURN row;
+
+//-------------------------------------CLEAN UP--------------------------------------------------------------------------------
+// add this point, we can get rid of Phone nodes, and get rid of any keys 
+// that don't have business logic
+
+// delete Phone nodes
+//MATCH (p:Phone) DELETE p;
+
+// delete the property personId from Person nodes 
+Match (p:Person) REMOVE p.personId;
+
+// delete the property addressId from Address nodes
+DROP CONSTRAINT address_id;
+MATCH (a:Address) REMOVE a.addressId;
+
+// delete the property cardId and personId from Card nodes
+MATCH (c:Card) REMOVE c.cardId;
+DROP CONSTRAINT card_person_id;
+MATCH (c:Card) REMOVE c.personId;
+
+MATCH (p:Phone) REMOVE p.phoneId;
